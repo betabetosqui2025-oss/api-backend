@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layouts/admin-layout :: admin-layout(pageTitle=${pageTitle}, content=~{::content})}">
+      <body>
+<th:block th:fragment="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Lista de Productos</h1>
+        <a th:href="@{/productos/nuevo}" class="btn btn-primary shadow-sm"><i class="fas fa-plus fa-sm text-white-50"></i> Nuevo Producto</a>
+    </div>
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Productos Registrados</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Imagen</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Categoría</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${productos.isEmpty()}">
+                            <td colspan="7" class="text-center">No hay productos. Crea uno para empezar.</td>
+                        </tr>
+                        <tr th:each="producto : ${productos}">
+                            <td><img th:src="${producto.imagenUrl != null ? producto.imagenUrl : '/img/placeholder.png'}" alt="Imagen" style="width: 50px; height: 50px; object-fit: cover;"></td>
+                            <td th:text="${producto.nombre}"></td>
+                            <td th:text="${#strings.abbreviate(producto.descripcion, 50)}"></td>
+                            <td th:text="${producto.precio != null ? #numbers.formatCurrency(producto.precio) : '$0.00'}"></td>
+                            <td th:text="${producto.stockActual}"></td>
+                            <td th:text="${producto.categoria != null ? producto.categoria : 'Sin categoría'}"></td>
+                            <td>
+                                <a th:href="@{/productos/editar/{id}(id=${producto.id})}" class="btn btn-warning btn-sm" title="Editar"><i class="fas fa-edit"></i></a>
+                                <form th:action="@{/productos/eliminar/{id}(id=${producto.id})}" method="post" class="d-inline" onsubmit="return confirm('¿Estás seguro?');">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Eliminar"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</th:block>
+</body>
+</html>

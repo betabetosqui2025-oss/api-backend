@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/admin-layout :: admin-layout(pageTitle='Predicción de Inventario', content=~{::.content})}">
+
+<body>
+<div class="content">
+
+    <h1 class="h3 mb-4 text-gray-800">Predicción de Agotamiento de Inventario</h1>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Estado del Inventario Basado en Ventas de los Últimos 90 Días</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Stock Actual</th>
+                            <th>Venta Promedio Diaria</th>
+                            <th>Días de Stock Restantes (Est.)</th>
+                            <th>Fecha de Agotamiento (Est.)</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${predicciones.isEmpty()}">
+                            <td colspan="6" class="text-center">No hay datos suficientes para mostrar la predicción.</td>
+                        </tr>
+                        <tr th:each="pred : ${predicciones}">
+                            <td th:text="${pred.nombreProducto}"></td>
+                            <td th:text="${pred.stockActual}"></td>
+                            <td th:text="${#numbers.formatDecimal(pred.ventaPromedioDiaria, 1, 2)}"></td>
+                            <td th:text="${pred.diasRestantes > 999 ? 'N/A' : pred.diasRestantes}"></td>
+                            <td th:text="${pred.diasRestantes > 999 ? 'N/A' : #temporals.format(pred.fechaAgotamiento, 'dd-MMM-yyyy')}"></td>
+                            <td>
+                                <span class="badge"
+                                      th:text="${pred.estado}"
+                                      th:classappend="${pred.estado == 'Crítico' ? 'badge-danger' : (pred.estado == 'Alerta' ? 'badge-warning' : 'badge-success')}">
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>

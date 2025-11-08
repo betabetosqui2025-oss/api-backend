@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layouts/admin-layout :: admin-layout(pageTitle=${pageTitle}, content=~{::content})}">
+<body>
+<th:block th:fragment="content">
+    
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle mr-2"></i>
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+
+    <h1 class="h3 mb-2 text-gray-800">Gestión de Inventario</h1>
+    <p class="mb-4">Consulta el stock actual de todos los productos y accede a su historial de movimientos.</p>
+    
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Stock de Productos</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Stock Actual</th>
+                            <th>Última Actualización</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="item : ${inventario}">
+                            <td th:text="${item.productoNombre}"></td>
+                            <td th:text="${item.productoCategoria}"></td>
+                            <td>
+                                <span class="font-weight-bold" 
+                                      th:text="${item.cantidadActual}"
+                                      th:classappend="${item.cantidadActual <= 5 ? 'text-danger' : (item.cantidadActual <= 10 ? 'text-warning' : '')}">
+                                </span>
+                            </td>
+                            <td th:text="${item.fechaUltimaActualizacion != null ? #temporals.format(item.fechaUltimaActualizacion, 'dd-MMM-yyyy hh:mm a') : 'N/A'}"></td>
+                            <td>
+                                <a th:href="@{/inventario/historial/{id}(id=${item.productoId})}" class="btn btn-info btn-sm" title="Ver Historial de Movimientos">
+                                    <i class="fas fa-history"></i>
+                                </a>
+                                
+                                <button type="button" class="btn btn-success btn-sm"
+                                        data-toggle="modal" data-target="#ajustarStockModal"
+                                        th:data-id="${item.productoId}"
+                                        th:data-nombre="${item.productoNombre}"
+                                        title="Ajustar Stock">
+                                    <i class="fas fa-plus-minus"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="ajustarStockModal" tabindex="-1" role="dialog" aria-labelledby="modalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <form th:action="@{/inventario/ajustar}" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="modalLabel">Ajustar Stock para: <span id="modalProductoNombre"></span></h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="productoId" id="modalProductoId" value="" />
+                        
+                        <div class="form-group">
+                            <label for="cantidad">Cantidad a Mover</label>
+                            <input type="number" class="form-control" id="cantidad" name="cantidad" 
+                                   placeholder="Ej: 50 (para agregar) o -10 (para restar)" required>
+                            <small class="form-text text-muted">
+                                Usa números positivos para entradas (compras, devoluciones) y negativos para salidas (mermas, robos).
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="motivo">Motivo del Ajuste</label>
+                            <input type="text" class="form-control" id="motivo" name="motivo" 
+                                   placeholder="Ej: Conteo físico fin de mes" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Ajuste</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</th:block>
+
+<th:block th:fragment="page-scripts">
+    <script>
+        $(document).ready(function() {
+            // Escucha cuando el modal está a punto de mostrarse
+            $('#ajustarStockModal').on('show.bs.modal', function (event) {
+                // event.relatedTarget es el botón que disparó el modal
+                var button = $(event.relatedTarget); 
+                
+                // Extrae los datos 'data-id' y 'data-nombre' del botón
+                var productoId = button.data('id');
+                var productoNombre = button.data('nombre');
+                
+                // Obtiene el modal
+                var modal = $(this);
+                
+                // Actualiza el título y el campo oculto del modal
+                modal.find('#modalProductoNombre').text(productoNombre);
+                modal.find('#modalProductoId').val(productoId);
+            });
+        });
+    </script>
+</th:block>
+
+</body>
+</html>
