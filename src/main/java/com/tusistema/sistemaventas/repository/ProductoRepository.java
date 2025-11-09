@@ -11,7 +11,7 @@ import java.util.Optional;
 @Repository
 public interface ProductoRepository extends MongoRepository<Producto, String> {
 
-    // ✅ MÉTODOS EXISTENTES (MANTENER)
+    // ✅ MÉTODOS EXISTENTES PARA APP MÓVIL
     Optional<Producto> findByNombreIgnoreCase(String nombre);
     Optional<Producto> findByCodigoBarras(String codigoBarras);
     boolean existsByNombre(String nombre);
@@ -20,7 +20,7 @@ public interface ProductoRepository extends MongoRepository<Producto, String> {
     @Query("{$or: [{'nombre': {$regex: ?0, $options: 'i'}}, {'codigoBarras': ?0}]}")
     List<Producto> buscarPorNombreOCodigo(String termino);
 
-    // ✅ NUEVOS MÉTODOS PARA APP MÓVIL (AGREGAR)
+    // ✅ NUEVOS MÉTODOS PARA INVENTARIO INTELIGENTE
     List<Producto> findByActivoTrue();
     List<Producto> findByCategoriaAndActivoTrue(String categoria);
     List<Producto> findByNombreContainingIgnoreCaseAndActivoTrue(String nombre);

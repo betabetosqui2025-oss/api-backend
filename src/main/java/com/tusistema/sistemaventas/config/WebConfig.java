@@ -6,14 +6,16 @@ import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
-import org.springframework.http.HttpHeaders; // <-- NUEVO IMPORT
-import org.springframework.http.MediaType; // <-- NUEVO IMPORT
-import org.springframework.web.reactive.function.client.WebClient; // <-- NUEVO IMPORT
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.LocaleResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.i18n.LocaleChangeInterceptor;
 import org.springframework.web.servlet.i18n.SessionLocaleResolver;
+
 import java.util.Locale;
 
 @Configuration
@@ -44,23 +46,38 @@ public class WebConfig implements WebMvcConfigurer {
         return lci;
     }
 
-    // ============================================
-    // == NUEVO BEAN PARA LA API DE PREDICCIÓN ==
-    // ============================================
     @Bean
     public WebClient predictionWebClient() {
         return WebClient.builder()
-                .baseUrl("http://localhost:8000") // URL base de tu API Python
+                .baseUrl("http://localhost:8000")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
-    // ============================================
+
+    // ✅ CONFIGURACIÓN PARA SERVIR ARCHIVOS ESTÁTICOS (IMÁGENES)
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // Servir archivos subidos desde el directorio 'uploads'
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:uploads/")
+                .setCachePeriod(3600);
+        
+        // Servir recursos estáticos por defecto
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/", "classpath:/public/");
+    }
+
+    // ❌ ELIMINADO: Configuración CORS (ahora la maneja SecurityConfig)
+    // @Override
+    // public void addCorsMappings(CorsRegistry registry) {
+    //     // Esta configuración se maneja en SecurityConfig.java
+    // }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(localeChangeInterceptor());
         registry.addInterceptor(globalDataInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/css/**", "/js/**", "/webjars/**", "/images/**");
+                .excludePathPatterns("/css/**", "/js/**", "/webjars/**", "/images/**", "/uploads/**");
     }
 }

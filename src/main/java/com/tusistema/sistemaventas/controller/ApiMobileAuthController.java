@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/mobile")
@@ -32,7 +33,6 @@ public class ApiMobileAuthController {
     @Autowired
     private JwtTokenUtil jwtTokenUtil;
 
-    // ✅ NUEVAS DEPENDENCIAS - AGREGAR
     @Autowired
     private ProductoRepository productoRepository;
 
@@ -42,11 +42,10 @@ public class ApiMobileAuthController {
     @Autowired
     private InventarioRepository inventarioRepository;
 
-    // ==================== ✅ TUS MÉTODOS EXISTENTES (MANTENER) ====================
+    // ==================== ✅ AUTHENTICACIÓN ====================
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
         try {
-            // ... tu código existente de login (NO CAMBIAR) ...
             Optional<Usuario> usuarioOpt = usuarioService.authenticateForMobile(
                 loginRequest.getUsername(), 
                 loginRequest.getPassword()
@@ -80,7 +79,6 @@ public class ApiMobileAuthController {
     @PostMapping("/verify-token")
     public ResponseEntity<ApiResponse<LoginResponse>> verifyToken(@RequestHeader("Authorization") String token) {
         try {
-            // ... tu código existente de verify-token (NO CAMBIAR) ...
             if (token == null || !token.startsWith("Bearer ")) {
                 return ResponseEntity.ok(ApiResponse.error("Token inválido"));
             }
@@ -121,8 +119,7 @@ public class ApiMobileAuthController {
         }
     }
 
-    // ==================== ✅ NUEVOS ENDPOINTS MÓVILES (AGREGAR) ====================
-
+    // ==================== ✅ HEALTH CHECK ====================
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> healthCheck() {
         Map<String, String> response = new HashMap<>();
@@ -132,7 +129,7 @@ public class ApiMobileAuthController {
         return ResponseEntity.ok(response);
     }
 
-    // ==================== PRODUCTOS ====================
+    // ==================== 📦 PRODUCTOS ====================
     @GetMapping("/products")
     public ResponseEntity<List<Producto>> obtenerProductosActivos() {
         try {
@@ -160,7 +157,7 @@ public class ApiMobileAuthController {
         }
     }
 
-    // ==================== CLIENTES ====================
+    // ==================== 👥 CLIENTES ====================
     @GetMapping("/clients")
     public ResponseEntity<List<Cliente>> obtenerClientes() {
         try {
@@ -174,7 +171,7 @@ public class ApiMobileAuthController {
     @GetMapping("/clients/search/{nombre}")
     public ResponseEntity<List<Cliente>> buscarClientes(@PathVariable String nombre) {
         try {
-            List<Cliente> clientes = clienteRepository.findByNombreContainingIgnoreCase(nombre); //The method findByNombreContainingIgnoreCase(String) is undefined for the type ClienteRepository
+            List<Cliente> clientes = clienteRepository.findByNombreContainingIgnoreCase(nombre);
             return ResponseEntity.ok(clientes);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
@@ -191,7 +188,93 @@ public class ApiMobileAuthController {
         }
     }
 
-    // ==================== INVENTARIO ====================
+    // ==================== 📱 INVENTARIO INTELIGENTE - KONTROL+ ====================
+
+    // 🔍 BUSCAR PRODUCTO POR CÓDIGO DE BARRAS
+    @GetMapping("/inventory/barcode/{codigoBarras}")
+    public ResponseEntity<Producto> buscarPorCodigoBarras(@PathVariable String codigoBarras) {
+        try {
+            Optional<Producto> producto = productoRepository.findByCodigoBarras(codigoBarras);
+            if (producto.isPresent()) {
+                return ResponseEntity.ok(producto.get());
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 📊 OBTENER STOCK COMPLETO DE PRODUCTO
+    @GetMapping("/inventory/stock/{productoId}")
+    public ResponseEntity<Map<String, Object>> obtenerStockProducto(@PathVariable String productoId) {
+        try {
+            Map<String, Object> response = new HashMap<>();
+            
+            // Obtener producto
+            Optional<Producto> productoOpt = productoRepository.findById(productoId);
+            if (productoOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Obtener inventario
+            Optional<Inventario> inventarioOpt = inventarioRepository.findByProductoId(productoId);
+            int stock = inventarioOpt.map(Inventario::getCantidad).orElse(0);
+            
+            Producto producto = productoOpt.get();
+            response.put("producto", producto);
+            response.put("stock", stock);
+            response.put("estado", getEstadoStock(stock));
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 📈 OBTENER PRODUCTOS CON STOCK BAJO
+    @GetMapping("/inventory/low-stock")
+    public ResponseEntity<List<Map<String, Object>>> obtenerProductosStockBajo() {
+        try {
+            List<Inventario> inventariosBajos = inventarioRepository.findByCantidadLessThan(10);
+            List<Map<String, Object>> resultado = new ArrayList<>();
+            
+            for (Inventario inventario : inventariosBajos) {
+                Optional<Producto> productoOpt = productoRepository.findById(inventario.getProductoId());
+                if (productoOpt.isPresent()) {
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("producto", productoOpt.get());
+                    item.put("stock", inventario.getCantidad());
+                    item.put("estado", getEstadoStock(inventario.getCantidad()));
+                    resultado.add(item);
+                }
+            }
+            
+            return ResponseEntity.ok(resultado);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 🔄 BUSCAR PRODUCTO POR NOMBRE O CÓDIGO (BÚSQUEDA FLEXIBLE)
+    @GetMapping("/inventory/search/{termino}")
+    public ResponseEntity<List<Producto>> buscarProductosFlexible(@PathVariable String termino) {
+        try {
+            // Buscar por código de barras
+            Optional<Producto> porCodigo = productoRepository.findByCodigoBarras(termino);
+            if (porCodigo.isPresent()) {
+                return ResponseEntity.ok(List.of(porCodigo.get()));
+            }
+            
+            // Buscar por nombre
+            List<Producto> porNombre = productoRepository.findByNombreContainingIgnoreCaseAndActivoTrue(termino);
+            return ResponseEntity.ok(porNombre);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    // 📋 OBTENER INVENTARIO COMPLETO
     @GetMapping("/inventory")
     public ResponseEntity<List<Inventario>> obtenerInventario() {
         try {
@@ -202,21 +285,11 @@ public class ApiMobileAuthController {
         }
     }
 
-    @GetMapping("/inventory/low-stock")
-    public ResponseEntity<List<Inventario>> obtenerStockBajo() {
-        try {
-            // Productos con menos de 10 unidades
-            List<Inventario> stockBajo = inventarioRepository.findByCantidadLessThan(10); // The method findByCantidadLessThan(int) is undefined for the type InventarioRepository
-            return ResponseEntity.ok(stockBajo);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
-    @GetMapping("/inventory/product/{productoId}")
-    public ResponseEntity<Inventario> obtenerStockProducto(@PathVariable String productoId) {
-        return inventarioRepository.findByProductoId(productoId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    // Método auxiliar para determinar estado del stock
+    private String getEstadoStock(int cantidad) {
+        if (cantidad == 0) return "AGOTADO";
+        if (cantidad < 5) return "STOCK_BAJO";
+        if (cantidad < 10) return "STOCK_MEDIO";
+        return "STOCK_NORMAL";
     }
 }

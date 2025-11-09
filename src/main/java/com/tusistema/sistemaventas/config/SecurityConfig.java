@@ -52,10 +52,9 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // ✅ SOLUCIÓN CON WILDCARDS - ACEPTA CUALQUIER PUERTO
         configuration.setAllowedOriginPatterns(Arrays.asList(
-            "http://localhost:*",    // ← ACEPTA localhost:3000, :5000, :56254, etc.
-            "http://127.0.0.1:*",   // ← ACEPTA 127.0.0.1:3000, :5000, :56254, etc.
+            "http://localhost:*",
+            "http://127.0.0.1:*", 
             "http://localhost",
             "http://127.0.0.1"
         ));
@@ -86,7 +85,9 @@ public class SecurityConfig {
                     "/register",
                     "/demo/start",
                     "/error",
-                    "/api/mobile/**"
+                    "/api/mobile/**",
+                    "/uploads/**",                    // ✅ PERMITIR ACCESO A IMÁGENES
+                    "/api/productos/images/**"        // ✅ PERMITIR IMAGE CONTROLLER
                 ).permitAll()
                 .requestMatchers(
                     "/dashboard", "/ventas/**", "/productos/**", "/clientes/**",
